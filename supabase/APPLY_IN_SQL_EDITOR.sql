@@ -147,7 +147,7 @@ returns text
 language sql
 immutable
 as $$
-  select encode(digest(convert_to(p_token, 'UTF8'), 'sha256'), 'hex');
+  select encode(digest(convert_to(p_token, 'UTF8'), 'sha256'::text), 'hex');
 $$;
 
 create or replace function public.wd_new_room_code()
@@ -1020,5 +1020,5 @@ returns text
 language sql
 immutable
 as $$
-  select encode(digest(convert_to(p_token, 'UTF8'), 'sha256'), 'hex');
+  select encode(digest(convert_to(p_token, 'UTF8'), 'sha256'::text), 'hex');
 $$;

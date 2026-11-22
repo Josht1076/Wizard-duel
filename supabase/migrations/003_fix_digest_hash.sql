@@ -1,5 +1,7 @@
--- Hotfix: pgcrypto digest() needs an explicit type for the algorithm arg.
--- Symptom: wd_create_match → "function digest(text, unknown) does not exist"
+-- Hotfix: pgcrypto digest() needs typed algorithm arg (text).
+-- Symptoms:
+--   digest(text, unknown) does not exist
+--   digest(bytea, unknown) does not exist
 
 create extension if not exists "pgcrypto";
 
@@ -8,5 +10,5 @@ returns text
 language sql
 immutable
 as $$
-  select encode(digest(convert_to(p_token, 'UTF8'), 'sha256'), 'hex');
+  select encode(digest(convert_to(p_token, 'UTF8'), 'sha256'::text), 'hex');
 $$;
