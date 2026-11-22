@@ -24,7 +24,8 @@ returns text
 language sql
 immutable
 as $$
-  select encode(digest(p_token, 'sha256'), 'hex');
+  -- convert_to + explicit algorithm avoids digest(text, unknown)
+  select encode(digest(convert_to(p_token, 'UTF8'), 'sha256'), 'hex');
 $$;
 
 create or replace function public.wd_new_room_code()
