@@ -1,10 +1,12 @@
--- Paste in Supabase SQL Editor (digest algorithm must be typed as text)
-create extension if not exists "pgcrypto";
+-- Paste in Supabase SQL Editor
+-- On Supabase, pgcrypto lives in schema "extensions" (digest is not on public).
+create extension if not exists "pgcrypto" with schema extensions;
 
 create or replace function public.wd_hash_token(p_token text)
 returns text
 language sql
 immutable
+set search_path = public, extensions
 as $$
-  select encode(digest(convert_to(p_token, 'UTF8'), 'sha256'::text), 'hex');
+  select encode(extensions.digest(convert_to(p_token, 'UTF8'), 'sha256'), 'hex');
 $$;

@@ -23,9 +23,9 @@ create or replace function public.wd_hash_token(p_token text)
 returns text
 language sql
 immutable
+set search_path = public, extensions
 as $$
-  -- convert_to + explicit algorithm avoids digest(text, unknown)
-  select encode(digest(convert_to(p_token, 'UTF8'), 'sha256'::text), 'hex');
+  select encode(extensions.digest(convert_to(p_token, 'UTF8'), 'sha256'), 'hex');
 $$;
 
 create or replace function public.wd_new_room_code()
