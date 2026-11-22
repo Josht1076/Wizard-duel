@@ -2,40 +2,46 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-
-function makeRoomCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 4; i++) {
-    code += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return code;
-}
+import { useState } from "react";
+import { createMatch } from "@/lib/match/api";
+import { newReconnectToken, saveSession } from "@/lib/session";
+import { getSupabaseEnvStatus } from "@/lib/supabase/client";
 
 export default function CreateGamePage() {
   const router = useRouter();
   const [name, setName] = useState("Wizard A");
-  const [roomCode, setRoomCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const env = getSupabaseEnvStatus();
 
-  useEffect(() => {
-    setRoomCode(makeRoomCode());
-  }, []);
-
-  function createLocal() {
-    const code = roomCode || makeRoomCode();
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        "wd_player",
-        JSON.stringify({
-          seat: "A",
-          name,
-          roomCode: code,
-          token: crypto.randomUUID(),
-        }),
-      );
+  async function onCreate() {
+    if (!env.configured) {
+      setError(`Missing env: ${env.missing.join(", ")}`);
+      return;
     }
-    router.push(`/duel?room=${code}&seat=A`);
+    setBusy(true);
+    setError(null);
+    try {
+      const token = newReconnectToken();
+      const result = await createMatch(name.trim() || "Wizard A", token);
+      saveSession({
+        matchId: result.match_id,
+        roomCode: result.room_code,
+        seat: "A",
+        name: name.trim() || "Wizard A",
+        token,
+      });
+      router.push(`/duel?room=${result.room_code}&seat=A`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "create_failed";
+      setError(
+        /Could not find the function|PGRST202|schema cache/i.test(msg)
+          ? "Supabase RPCs missing — apply supabase/APPLY_IN_SQL_EDITOR.sql in the SQL Editor, then retry."
+          : msg,
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -52,20 +58,17 @@ export default function CreateGamePage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="nickname"
+            disabled={busy}
           />
-        </label>
-        <label>
-          Room code
-          <input value={roomCode || "····"} readOnly aria-readonly="true" />
         </label>
         <div className="actions">
           <button
             type="button"
             className="primary"
-            onClick={createLocal}
-            disabled={!roomCode}
+            onClick={() => void onCreate()}
+            disabled={busy}
           >
-            Enter duel (local stub)
+            {busy ? "Creating…" : "Create room"}
           </button>
           <Link
             className="secondary"
@@ -75,6 +78,18 @@ export default function CreateGamePage() {
             Back
           </Link>
         </div>
+        {error && (
+          <p
+            role="alert"
+            className="small"
+            style={{
+              color: "#994829",
+              font: "13px/1.4 Segoe UI, sans-serif",
+            }}
+          >
+            {error}
+          </p>
+        )}
         <p
           className="small"
           style={{
@@ -82,8 +97,8 @@ export default function CreateGamePage() {
             font: "13px/1.4 Segoe UI, sans-serif",
           }}
         >
-          Room create/join against Supabase is stubbed — this only opens the
-          duel UI.
+          Creates a Supabase match, stores your reconnect token in localStorage,
+          and opens the lobby. Share the room code after create.
         </p>
       </div>
     </main>

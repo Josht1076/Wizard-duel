@@ -3,22 +3,86 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { joinMatch, reconnectMatch } from "@/lib/match/api";
+import { newReconnectToken, saveSession } from "@/lib/session";
+import { getSupabaseEnvStatus } from "@/lib/supabase/client";
 
 export default function JoinGamePage() {
   const router = useRouter();
   const [name, setName] = useState("Wizard B");
   const [roomCode, setRoomCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const env = getSupabaseEnvStatus();
 
-  function joinLocal() {
+  async function onJoin() {
     const code = roomCode.trim().toUpperCase();
     if (code.length < 3) return;
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        "wd_player",
-        JSON.stringify({ seat: "B", name, roomCode: code, token: crypto.randomUUID() }),
-      );
+    if (!env.configured) {
+      setError(`Missing env: ${env.missing.join(", ")}`);
+      return;
     }
-    router.push(`/duel?room=${encodeURIComponent(code)}&seat=B`);
+    setBusy(true);
+    setError(null);
+    try {
+      const token = newReconnectToken();
+      const result = await joinMatch(code, name.trim() || "Wizard B", token);
+      saveSession({
+        matchId: result.match_id,
+        roomCode: result.room_code,
+        seat: "B",
+        name: name.trim() || "Wizard B",
+        token,
+      });
+      router.push(`/duel?room=${encodeURIComponent(result.room_code)}&seat=B`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "join_failed";
+      setError(
+        /Could not find the function|PGRST202|schema cache/i.test(msg)
+          ? "Supabase RPCs missing — apply supabase/APPLY_IN_SQL_EDITOR.sql in the SQL Editor, then retry."
+          : msg,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onReconnect() {
+    const code = roomCode.trim().toUpperCase();
+    if (code.length < 3) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const existing = window.localStorage.getItem("wd_player");
+      if (!existing) {
+        setError("No saved seat in this browser — join as a new player instead.");
+        return;
+      }
+      const parsed = JSON.parse(existing) as {
+        token?: string;
+        name?: string;
+        roomCode?: string;
+      };
+      if (!parsed.token) {
+        setError("Saved session is missing a reconnect token.");
+        return;
+      }
+      const result = await reconnectMatch(code, parsed.token);
+      saveSession({
+        matchId: result.match_id,
+        roomCode: result.room_code,
+        seat: result.seat,
+        name: result.display_name || parsed.name || "Wizard",
+        token: parsed.token,
+      });
+      router.push(
+        `/duel?room=${encodeURIComponent(result.room_code)}&seat=${result.seat}`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "reconnect_failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -35,6 +99,7 @@ export default function JoinGamePage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="nickname"
+            disabled={busy}
           />
         </label>
         <label>
@@ -45,30 +110,46 @@ export default function JoinGamePage() {
             placeholder="ABCD"
             autoCapitalize="characters"
             maxLength={8}
+            disabled={busy}
           />
         </label>
         <div className="actions">
           <button
             type="button"
             className="primary"
-            onClick={joinLocal}
-            disabled={roomCode.trim().length < 3}
+            onClick={() => void onJoin()}
+            disabled={busy || roomCode.trim().length < 3}
           >
-            Enter duel (local stub)
+            {busy ? "Joining…" : "Join room"}
           </button>
-          <Link className="secondary" href="/" style={{ display: "grid", placeItems: "center" }}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => void onReconnect()}
+            disabled={busy || roomCode.trim().length < 3}
+          >
+            Reconnect
+          </button>
+          <Link
+            className="secondary"
+            href="/"
+            style={{ display: "grid", placeItems: "center" }}
+          >
             Back
           </Link>
         </div>
-        <p
-          className="small"
-          style={{
-            color: "light-dark(#60566b, #c3b7ce)",
-            font: "13px/1.4 Segoe UI, sans-serif",
-          }}
-        >
-          Join does not hit Supabase yet — navigation only.
-        </p>
+        {error && (
+          <p
+            role="alert"
+            className="small"
+            style={{
+              color: "#994829",
+              font: "13px/1.4 Segoe UI, sans-serif",
+            }}
+          >
+            {error}
+          </p>
+        )}
       </div>
     </main>
   );

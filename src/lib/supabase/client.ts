@@ -1,18 +1,48 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+let browserClient: SupabaseClient | null | undefined;
+
 /**
- * Browser/client stub. Reads public env vars.
- * Realtime match wiring comes in a later milestone — this only constructs the client.
+ * Browser Supabase client (publishable / anon key).
+ * Mutations go through SECURITY DEFINER RPCs that verify reconnect tokens.
  */
 export function createBrowserSupabaseClient(): SupabaseClient | null {
+  if (browserClient !== undefined) return browserClient;
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
+    browserClient = null;
     return null;
   }
 
-  return createClient(url, anonKey);
+  browserClient = createClient(url, anonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+  return browserClient;
+}
+
+/** Server-side client with the same publishable key (for /api/resolve RPCs). */
+export function createServerSupabaseClient(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    );
+  }
+
+  return createClient(url, anonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
 
 export function getSupabaseEnvStatus(): {

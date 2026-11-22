@@ -7,8 +7,8 @@ export default function HomePage() {
         <p className="brand">✦ Wizard Duel</p>
         <h1>Wizard Duel</h1>
         <p>
-          Invite-only two-phone playtest. Create a room, share the code, commit
-          spells in secret, resolve on the table.
+          Invite-only two-phone playtest on Supabase. Create a room, share the
+          code, commit spells in secret, resolve on the server.
         </p>
       </div>
       <div className="actions">
