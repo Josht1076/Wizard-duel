@@ -1,0 +1,445 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f0e7;
+  --foreground: #241e32;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1d1728;
+    --foreground: #f7efdd;
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, #855127 18%, transparent), transparent 42%),
+    radial-gradient(circle at 88% 0%, color-mix(in srgb, #6d4694 14%, transparent), transparent 36%),
+    var(--background);
+  color: var(--foreground);
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* —— Duel mockup port —— */
+.duel-shell {
+  color-scheme: light dark;
+  --ink: light-dark(#241e32, #f7efdd);
+  --dim: light-dark(#60566b, #c3b7ce);
+  --paper: light-dark(#f6f0e7, #1d1728);
+  --panel: light-dark(#fffaf1, #2a2138);
+  --edge: light-dark(#cbbecb, #534461);
+  --gold: light-dark(#855127, #f1bd77);
+  --stamp: light-dark(#f4dfbc, #4e352a);
+  --fire: light-dark(#994829, #ffab81);
+  --ice: light-dark(#356285, #9ccfff);
+  --illusion: light-dark(#6d4694, #d1abff);
+  --ward: light-dark(#426649, #b6d9ae);
+  max-width: 590px;
+  margin: auto;
+  padding: clamp(14px, 4vw, 28px);
+  border: 1px solid var(--edge);
+  border-radius: 22px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 14px/1.4 "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+.duel-shell * {
+  box-sizing: border-box;
+}
+
+.duel-shell button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.duel-shell button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.duel-shell h1,
+.duel-shell h2,
+.duel-shell h3,
+.duel-shell p {
+  margin: 0;
+}
+
+.duel-shell .brand,
+.duel-shell .eyebrow {
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.duel-shell .top,
+.duel-shell .heading,
+.duel-shell .hand-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.duel-shell .top {
+  color: var(--dim);
+}
+
+.duel-shell .health {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 14px 0 17px;
+  padding: 9px 0;
+  gap: 12px;
+  border-block: 1px solid var(--edge);
+}
+
+.duel-shell .health > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.duel-shell .health > div + div {
+  border-left: 1px solid var(--edge);
+  padding-left: 12px;
+}
+
+.duel-shell .health strong {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.duel-shell .heading h2 {
+  font: 400 clamp(34px, 7vw, 54px) / 1 Georgia, "Iowan Old Style", serif;
+}
+
+.duel-shell .heading {
+  margin-bottom: 13px;
+}
+
+.duel-shell .utility {
+  min-height: 44px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 9px;
+  padding: 6px 11px;
+}
+
+.duel-shell .public {
+  background: var(--panel);
+  padding: 11px 13px;
+  border-left: 3px solid var(--gold);
+  border-radius: 4px 9px 9px 4px;
+  margin-bottom: 13px;
+}
+
+.duel-shell .public p + p {
+  margin-top: 4px;
+}
+
+.duel-shell .public strong {
+  color: var(--ink);
+}
+
+.duel-shell .public .meta {
+  color: var(--dim);
+  font-size: 12px;
+}
+
+.duel-shell .selection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.duel-shell .spell {
+  --school: var(--fire);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  gap: 12px;
+  min-height: 157px;
+  padding: 15px 12px;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--school) 12%, var(--panel)),
+    var(--panel) 70%
+  );
+}
+
+.duel-shell .sigil {
+  display: grid;
+  place-items: center;
+  width: clamp(34px, 8vw, 56px);
+  aspect-ratio: 1;
+  align-self: start;
+  border: 1px solid color-mix(in srgb, var(--school) 50%, transparent);
+  border-radius: 50%;
+  color: var(--school);
+  font-size: 22px;
+}
+
+.duel-shell .spell h3 {
+  font: 400 clamp(23px, 5vw, 34px) / 1.1 Georgia, "Iowan Old Style", serif;
+  margin: 3px 0 6px;
+}
+
+.duel-shell .spell .rule {
+  font-size: 13px;
+}
+
+.duel-shell .power {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  justify-items: center;
+  gap: 5px;
+}
+
+.duel-shell .numbers {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 4px;
+}
+
+.duel-shell .numbers button {
+  width: 44px;
+  min-height: 44px;
+  border-radius: 7px;
+  border: 1px solid var(--edge);
+  background: var(--panel);
+  font: 600 15px / 1 "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+.duel-shell .numbers button:disabled {
+  text-decoration: line-through;
+  color: var(--dim);
+  cursor: default;
+  background: transparent;
+}
+
+.duel-shell button[aria-pressed="true"] {
+  border-color: var(--gold);
+  background: var(--stamp);
+}
+
+.duel-shell .hand-title {
+  margin: 15px 0 7px;
+}
+
+.duel-shell .small {
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.duel-shell .hand {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.duel-shell .hand[data-defense="true"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.duel-shell .choice {
+  min-height: 65px;
+  text-align: left;
+  padding: 7px 8px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+}
+
+.duel-shell .choice strong,
+.duel-shell .choice span {
+  display: block;
+}
+
+.duel-shell .choice strong {
+  font-weight: 650;
+}
+
+.duel-shell .choice span {
+  font-size: 11px;
+}
+
+.duel-shell .footer {
+  margin-top: 14px;
+  display: grid;
+  gap: 9px;
+}
+
+.duel-shell .main-action {
+  min-height: 44px;
+  border: 1px solid var(--gold);
+  border-radius: 9px;
+  background: light-dark(#35233e, #efbc79);
+  color: light-dark(#fff7ea, #291c2b);
+  font-weight: 750;
+}
+
+.duel-shell .fire {
+  --school: var(--fire);
+}
+.duel-shell .ice {
+  --school: var(--ice);
+}
+.duel-shell .illusion {
+  --school: var(--illusion);
+}
+.duel-shell .defense {
+  --school: var(--ward);
+}
+
+.duel-shell .kind {
+  color: var(--school);
+  font-weight: 650;
+}
+
+.duel-shell .result {
+  display: grid;
+  gap: 10px;
+}
+
+.duel-shell .advantage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.duel-shell .advantage-event {
+  margin-bottom: 10px;
+}
+
+.duel-shell .advantage-event:empty {
+  display: none;
+}
+
+.lobby-page {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: clamp(20px, 5vw, 40px) 16px 48px;
+}
+
+.lobby-page .hero {
+  margin-bottom: 28px;
+}
+
+.lobby-page .hero .brand {
+  color: light-dark(#855127, #f1bd77);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.lobby-page .hero h1 {
+  font: 400 clamp(42px, 10vw, 64px) / 0.95 Georgia, "Iowan Old Style", serif;
+  margin: 10px 0 12px;
+}
+
+.lobby-page .hero p {
+  color: light-dark(#60566b, #c3b7ce);
+  font: 15px / 1.45 "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  margin: 0;
+}
+
+.lobby-page .stack {
+  display: grid;
+  gap: 12px;
+  font: 14px / 1.4 "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+.lobby-page label {
+  display: grid;
+  gap: 6px;
+  font-weight: 650;
+}
+
+.lobby-page input {
+  min-height: 44px;
+  border: 1px solid light-dark(#cbbecb, #534461);
+  border-radius: 9px;
+  background: light-dark(#fffaf1, #2a2138);
+  color: inherit;
+  padding: 8px 12px;
+  font: inherit;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lobby-page .actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.lobby-page .primary,
+.lobby-page .secondary {
+  min-height: 48px;
+  border-radius: 9px;
+  font: 750 15px / 1 "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.lobby-page .primary {
+  border: 1px solid light-dark(#855127, #f1bd77);
+  background: light-dark(#35233e, #efbc79);
+  color: light-dark(#fff7ea, #291c2b);
+}
+
+.lobby-page .secondary {
+  border: 1px solid light-dark(#cbbecb, #534461);
+  background: light-dark(#fffaf1, #2a2138);
+  color: inherit;
+}
+
+.preview-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-width: 590px;
+  margin: 0 auto 10px;
+  padding: 0 8px;
+  font: 13px / 1.3 "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+.preview-bar button {
+  min-height: 44px;
+  padding: 6px 11px;
+  border: 1px solid light-dark(#cbbecb, #534461);
+  border-radius: 9px;
+  background: light-dark(#fffaf1, #2a2138);
+  color: light-dark(#241e32, #f7efdd);
+  font: inherit;
+  cursor: pointer;
+}
+
+.preview-bar button[aria-pressed="true"] {
+  background: light-dark(#f4dfbc, #4e352a);
+  border-color: light-dark(#855127, #f1bd77);
+}
+
+@media (max-width: 560px) {
+  .duel-shell .hand[data-defense="true"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
