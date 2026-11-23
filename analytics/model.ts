@@ -116,7 +116,11 @@ export function replay(records: RecordRow[]) {
     if (!trace || trace.engine_version!=='power-engine-2') return {match_id:r.match_id,exchange:r.exchange_number,ok:false,error:'unsupported_or_missing_replay'};
     try {
       const actual=resolveExchange(trace.input);
-      if(canonical(actual)!==canonical(trace.result)) throw new Error('engine_result_mismatch');
+      // Older stored replays omit math; compare core fields only.
+      const {math: _actualMath, ...actualCore}=actual;
+      const stored=trace.result&&typeof trace.result==='object'?{...trace.result}:{};
+      delete (stored as {math?:unknown}).math;
+      if(canonical(actualCore)!==canonical(stored)) throw new Error('engine_result_mismatch');
       for(const [field,value] of Object.entries({incoming_damage:actual.incomingDamage,prevention:actual.prevention,damage_to_defender:actual.damageToDefender,
         retaliation_to_attacker:actual.retaliationToAttacker,attacker_health:actual.attackerHealth,defender_health:actual.defenderHealth,
         advantage_after:actual.advantageAfter,attacker_stored_damage:actual.attackerStoredDamage,winner:actual.winner})) {

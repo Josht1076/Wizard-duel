@@ -127,6 +127,32 @@ a {
   white-space: nowrap;
 }
 
+.duel-shell .health .seat-name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  min-width: 0;
+}
+
+.duel-shell .health .advantage-diamond {
+  color: light-dark(#855127, #f1bd77);
+  font-size: 0.95em;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.duel-shell .math-breakdown {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  font: 12.5px/1.45 "Segoe UI", system-ui, sans-serif;
+  color: var(--dim);
+}
+
+.duel-shell .math-breakdown p {
+  margin: 0;
+}
+
 .duel-shell .heading h2 {
   font: 400 clamp(34px, 7vw, 54px) / 1 Georgia, "Iowan Old Style", serif;
 }

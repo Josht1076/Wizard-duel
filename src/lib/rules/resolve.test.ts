@@ -41,6 +41,22 @@ describe("resolveExchange", () => {
     expect(result.attackerHealth).toBe(12);
     // 2 is positive and ≤ half of 8 (4) → no change
     expect(result.advantageAfter).toBe("B");
+    expect(result.math.incoming).toMatchObject({
+      base: 3,
+      power: 5,
+      prep: 0,
+      boost: 0,
+      arriving: 0,
+      total: 8,
+      mode: "normal",
+    });
+    expect(result.math.prevention).toMatchObject({
+      base: 3,
+      power: 3,
+      prep: 0,
+      boost: 0,
+      total: 6,
+    });
   });
 
   it("Feint vs Full: attacker always gains Advantage", () => {

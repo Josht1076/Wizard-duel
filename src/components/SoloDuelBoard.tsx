@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback,useEffect,useMemo,useRef,useState } from "react";
-import { ATTACK_CARDS,DEFENSE_CARDS,SCHOOL_ICONS,type AttackSpell,type DefenseSpell,type PowerValue } from "@/lib/rules";
+import { ATTACK_CARDS,DEFENSE_CARDS,SCHOOL_ICONS,formatExchangeMath,mathFromPayload,type AttackSpell,type DefenseSpell,type PowerValue } from "@/lib/rules";
 import { actor,botView,canBoost,other,powers,school,step,BOT_VERSION,type Move,type Policy } from "@/lib/solo/game";
 import { createArchive,publicArchive,restore,type SavedGame } from "@/lib/solo/archive";
 import { load,save,savedGames,upload } from "@/lib/solo/storage";
@@ -113,7 +113,16 @@ export function SoloDuelBoard(){
     {error&&<p className="solo-notice" role="alert">{error} {botTurn&&<button onClick={()=>setRetry(n=>n+1)}>Retry AI turn</button>}</p>}
     {state&&game&&<section className="duel-shell" aria-label="Duel against AI">
       <div className="top"><span className="brand">✦ Wizard Duel</span><span>{state.phase==="bid"?"Opening bid":`Exchange ${state.exchange}`}</span></div>
-      <div className="health"><div><span>You</span><strong>{me!.health} HP</strong></div><div><span>AI · {game.archive.policy}</span><strong>{opponent!.health} HP</strong></div></div>
+      <div className="health" aria-label="Wizard health">
+        <div>
+          <span className="seat-name">You{state.advantage==="A"&&<span className="advantage-diamond" title="Has Advantage" aria-label="Has Advantage">◆</span>}</span>
+          <strong>{me!.health} HP</strong>
+        </div>
+        <div>
+          <span className="seat-name">AI · {game.archive.policy}{state.advantage==="B"&&<span className="advantage-diamond" title="Has Advantage" aria-label="Has Advantage">◆</span>}</span>
+          <strong>{opponent!.health} HP</strong>
+        </div>
+      </div>
       <div className="heading"><h2 aria-live="polite">{state.phase==="finished"?(state.winner==="draw"?"Draw":state.winner==="A"?"You win":"AI wins"):state.phase==="reveal"?"Exchange resolved":state.phase==="bid"?"Choose an opening bid":thinking?"AI is thinking…":humanTurn?(state.phase==="refresh"?"Refresh or keep Advantage":state.phase==="attack"?"Your attack":"Your defense"):"Waiting for AI"}</h2>
       {!["finished","reveal","bid"].includes(state.phase)&&<button className="utility" aria-expanded={inspect} onClick={()=>setInspect(!inspect)}>Inspect</button>}</div>
       {inspect&&<div className="public">
@@ -151,10 +160,19 @@ export function SoloDuelBoard(){
         const atk=last.attacker_seat==="A"?"You":"AI";
         const def=last.defender_seat==="A"?"You":"AI";
         const adv=last.advantage_after==="A"?"You":last.advantage_after==="B"?"AI":"none";
+        const math=mathFromPayload(last as unknown as Record<string,unknown>);
+        const lines=math?formatExchangeMath(math):null;
         return <div className="result public" aria-live="polite">
           <p>{atk} (attack): {last.attack_spell} @ {last.attack_power} · {last.incoming_damage} incoming damage</p>
           <p>{def} (defense): {last.defense_spell} @ {last.defense_power} · {last.prevention} prevention</p>
           <p>{def} loses {last.damage_to_defender} HP.{last.retaliation_to_attacker?` ${atk} loses ${last.retaliation_to_attacker} HP to Reversal.`:""} Advantage · {adv}. {last.followups.join(" ")}</p>
+          {lines&&<div className="math-breakdown" aria-label="Resolution math">
+            <p>{lines.incoming}</p>
+            <p>{lines.prevention}</p>
+            <p>{lines.damage}</p>
+            {lines.retaliation&&<p>{lines.retaliation}</p>}
+            {lines.store&&<p>{lines.store}</p>}
+          </div>}
         </div>;
       })()}
       {state.phase==="reveal"&&<button className="main-action" onClick={()=>commit({kind:"continue"})}>Next exchange</button>}

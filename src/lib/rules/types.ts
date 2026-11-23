@@ -64,6 +64,44 @@ export interface ExchangeInput {
   commit: ExchangeCommit;
 }
 
+/** Component parts for UI formula lines (base + power + prep + boost + arriving). */
+export interface IncomingBreakdown {
+  base: number;
+  power: number;
+  prep: number;
+  boost: number;
+  arriving: number;
+  /** Extra +2 only when Gather releases stored damage under attack boost. */
+  gatherBoost: number;
+  /** Spell mode that replaced or zeroed new damage. */
+  mode: "normal" | "delayed" | "gather";
+  total: number;
+}
+
+export interface PreventionBreakdown {
+  base: number;
+  power: number;
+  prep: number;
+  boost: number;
+  total: number;
+}
+
+export interface StoreBreakdown {
+  power: number;
+  prep: number;
+  boost: number;
+  total: number;
+}
+
+export interface ExchangeMath {
+  incoming: IncomingBreakdown;
+  prevention: PreventionBreakdown;
+  damageToDefender: number;
+  retaliationToAttacker: number;
+  /** Present when this exchange banks a new Delayed store. */
+  store: StoreBreakdown | null;
+}
+
 export interface ExchangeResult {
   incomingDamage: number;
   prevention: number;
@@ -79,4 +117,6 @@ export interface ExchangeResult {
   defenderNextAttackBonus: number;
   followups: string[];
   winner: Seat | "draw" | null;
+  /** Formula parts for resolve UI; optional on older stored replays. */
+  math: ExchangeMath;
 }

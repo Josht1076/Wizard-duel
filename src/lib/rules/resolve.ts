@@ -2,6 +2,7 @@ import { getAttackCard, getDefenseCard } from "./cards";
 import type {
   AdvantageHolder,
   ExchangeInput,
+  ExchangeMath,
   ExchangeResult,
   PowerValue,
   Seat,
@@ -85,14 +86,12 @@ export function resolveExchange(input: ExchangeInput): ExchangeResult {
   const isDelayed = commit.attackSpell === "Delayed";
 
   // Gather / Delayed replace normal attack calculation for "new" damage
-  let newDamage = 0;
-  if (!isGather && !isDelayed) {
-    newDamage =
-      attackCard.baseDamage +
-      commit.attackPower +
-      partialAttackBonus +
-      attackBoost;
-  }
+  const attackBase = isGather || isDelayed ? 0 : attackCard.baseDamage;
+  const attackPowerTerm = isGather || isDelayed ? 0 : commit.attackPower;
+  const attackPrepTerm = isGather || isDelayed ? 0 : partialAttackBonus;
+  const attackBoostTerm = isGather || isDelayed ? 0 : attackBoost;
+  const newDamage =
+    attackBase + attackPowerTerm + attackPrepTerm + attackBoostTerm;
 
   // Gather: attacking Advantage boost adds +2 only if stored damage is arriving
   const gatherBoost =
@@ -100,8 +99,9 @@ export function resolveExchange(input: ExchangeInput): ExchangeResult {
 
   const incoming = newDamage + arrivingStored + gatherBoost;
 
+  const preventionBase = defenseCard.basePrevention;
   const prevention =
-    defenseCard.basePrevention +
+    preventionBase +
     commit.defensePower +
     partialDefenseBonus +
     defendBoost;
@@ -161,11 +161,18 @@ export function resolveExchange(input: ExchangeInput): ExchangeResult {
 
   // --- Stored damage / preparations ---
   let attackerStoredDamage = 0;
+  let storeMath: ExchangeMath["store"] = null;
   // Arriving stored is consumed this exchange
   if (isDelayed) {
     // New Delayed stores Power + attack bonuses (prep + boost); does not boost arriving packet
     attackerStoredDamage =
       commit.attackPower + partialAttackBonus + attackBoost;
+    storeMath = {
+      power: commit.attackPower,
+      prep: partialAttackBonus,
+      boost: attackBoost,
+      total: attackerStoredDamage,
+    };
   }
 
   // Partial attack prepares +1 prevention for attacker's next defense
@@ -202,6 +209,29 @@ export function resolveExchange(input: ExchangeInput): ExchangeResult {
   else if (attackerDead) winner = defenderSeat;
   else if (defenderDead) winner = attackerSeat;
 
+  const math: ExchangeMath = {
+    incoming: {
+      base: attackBase,
+      power: attackPowerTerm,
+      prep: attackPrepTerm,
+      boost: attackBoostTerm,
+      arriving: arrivingStored,
+      gatherBoost,
+      mode: isDelayed ? "delayed" : isGather ? "gather" : "normal",
+      total: incoming,
+    },
+    prevention: {
+      base: preventionBase,
+      power: commit.defensePower,
+      prep: partialDefenseBonus,
+      boost: defendBoost,
+      total: prevention,
+    },
+    damageToDefender,
+    retaliationToAttacker,
+    store: storeMath,
+  };
+
   return {
     incomingDamage: incoming,
     prevention,
@@ -217,6 +247,7 @@ export function resolveExchange(input: ExchangeInput): ExchangeResult {
     defenderNextAttackBonus,
     followups,
     winner,
+    math,
   };
 }
 

@@ -5,6 +5,8 @@ import {
   ATTACK_CARDS,
   DEFENSE_CARDS,
   SCHOOL_ICONS,
+  formatExchangeMath,
+  mathFromPayload,
   type PowerValue,
   type Seat,
 } from "@/lib/rules";
@@ -206,6 +208,9 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
         }`;
   const leftHp = attackerSeat ? attackPlayer?.health : playerA?.health;
   const rightHp = attackerSeat ? defendPlayer?.health : playerB?.health;
+  const leftSeat: Seat = attackerSeat ?? "A";
+  const rightSeat: Seat = defenderSeat ?? "B";
+  const advantageSeat = snap?.state.advantage_seat ?? null;
 
   const heading = (() => {
     if (!snap) return "Connecting…";
@@ -265,11 +270,25 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
 
         <div className="health" aria-label="Wizard health">
           <div>
-            <span>{leftLabel}</span>
+            <span className="seat-name">
+              {leftLabel}
+              {advantageSeat === leftSeat && (
+                <span className="advantage-diamond" title="Has Advantage" aria-label="Has Advantage">
+                  ◆
+                </span>
+              )}
+            </span>
             <strong>{leftHp ?? "—"} HP</strong>
           </div>
           <div>
-            <span>{rightLabel}</span>
+            <span className="seat-name">
+              {rightLabel}
+              {advantageSeat === rightSeat && (
+                <span className="advantage-diamond" title="Has Advantage" aria-label="Has Advantage">
+                  ◆
+                </span>
+              )}
+            </span>
             <strong>{rightHp ?? "—"} HP</strong>
           </div>
         </div>
@@ -548,6 +567,8 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
           const atk = nameFor(atkSeat);
           const def = nameFor(defSeat);
           const adv = last.advantage_after ? nameFor(last.advantage_after as Seat) : "None";
+          const math = mathFromPayload(last);
+          const lines = math ? formatExchangeMath(math) : null;
           return (
             <div className="result">
               <div className="public" aria-live="polite">
@@ -569,6 +590,15 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
                     ? ` ${(last.followups as string[]).join(" ")}`
                     : ""}
                 </p>
+                {lines && (
+                  <div className="math-breakdown" aria-label="Resolution math">
+                    <p>{lines.incoming}</p>
+                    <p>{lines.prevention}</p>
+                    <p>{lines.damage}</p>
+                    {lines.retaliation && <p>{lines.retaliation}</p>}
+                    {lines.store && <p>{lines.store}</p>}
+                  </div>
+                )}
               </div>
             </div>
           );

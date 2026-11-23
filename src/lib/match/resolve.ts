@@ -63,6 +63,7 @@ export function resolveBundle(bundle: ResolveBundle) {
     prevention: result.prevention,
     damage_to_defender: result.damageToDefender,
     retaliation_to_attacker: result.retaliationToAttacker,
+    math: result.math,
     attacker_health: result.attackerHealth,
     defender_health: result.defenderHealth,
     advantage_after: result.advantageAfter,
