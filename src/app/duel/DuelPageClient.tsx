@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { DuelBoard } from "@/components/DuelBoard";
+import { SoloDuelBoard } from "@/components/SoloDuelBoard";
 import { OnlineDuelBoard } from "@/components/OnlineDuelBoard";
 import { loadSession, saveSession, type PlayerSession } from "@/lib/session";
 import { reconnectMatch } from "@/lib/match/api";
@@ -10,7 +10,6 @@ import { reconnectMatch } from "@/lib/match/api";
 export function DuelPageClient() {
   const searchParams = useSearchParams();
   const room = searchParams.get("room")?.toUpperCase() ?? undefined;
-  const seatParam = searchParams.get("seat") === "B" ? "B" : "A";
   const [session, setSession] = useState<PlayerSession | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,10 +98,7 @@ export function DuelPageClient() {
           {error}
         </p>
       )}
-      <DuelBoard
-        roomCode={room}
-        seatLabel={room ? `Seat ${seatParam} (offline)` : "Solo preview"}
-      />
+      <SoloDuelBoard />
     </main>
   );
 }

@@ -443,3 +443,12 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.solo-page { max-width: 720px; margin: auto; padding: 0 12px; }
+.solo-setup { max-width: 590px; margin: 16px auto; padding: 16px; border: 1px solid #74647e; border-radius: 14px; }
+.solo-setup summary { cursor: pointer; font-weight: bold; }
+.solo-controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.solo-controls label, .solo-setup > label { display: grid; gap: 6px; font: 16px/1.5 system-ui; }
+.solo-setup input, .solo-setup select { max-width: 100%; padding: 10px; border: 1px solid #74647e; border-radius: 6px; background: var(--background); color: var(--foreground); font: inherit; }
+.solo-boost { display: flex; gap: 8px; align-items: center; margin: 12px 0; font: 16px/1.5 system-ui; }
+.solo-notice { padding: 12px; border: 1px solid #994829; border-radius: 8px; }

@@ -18,8 +18,8 @@ export default function HomePage() {
         <Link className="secondary" href="/join" style={{ display: "grid", placeItems: "center" }}>
           Join Game
         </Link>
-        <Link className="secondary" href="/duel" style={{ display: "grid", placeItems: "center" }}>
-          Solo duel UI
+        <Link className="secondary" href="/solo" style={{ display: "grid", placeItems: "center" }}>
+          Play against AI
         </Link>
       </div>
     </main>

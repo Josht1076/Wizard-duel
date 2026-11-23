@@ -1,10 +1,10 @@
 import { resolveExchange, type ExchangeInput, type ExchangeResult } from "../src/lib/rules";
-export type Match = { id: string; status: string; ruleset_version: string; engine_version: string; event_schema_version: number; winner_seat: string | null; created_at: string; started_at?: string | null; updated_at: string; finished_at: string | null };
+export type Match = { match_mode?:"human_human"|"human_ai"; bot_policy?:string|null; bot_version?:string|null; bot_seed?:number|null; data_source?:string; id: string; status: string; ruleset_version: string; engine_version: string; event_schema_version: number; winner_seat: string | null; created_at: string; started_at?: string | null; updated_at: string; finished_at: string | null };
 export type Player = { match_id: string; seat: string; tester_id: string | null; health: number };
 export type RecordRow = { id: number; match_id: string; exchange_number: number; seat: string | null; kind: string; payload: { [key: string]: unknown; replay?: { input: ExchangeInput; result: ExchangeResult; engine_version: string } }; state: { state?: { [key: string]: unknown }; players?: { seat: string; health: number; discarded_power: number[]; stored_damage: number; preparations: { nextAttackBonus: number; nextDefenseBonus: number } }[] }; created_at: string };
 export type Telemetry = { request_id: string; match_id: string; seat: string; exchange_number: number; phase: string; kind: string; payload: { [key: string]: unknown }; created_at: string };
 export type Dataset = { matches: Match[]; players: Player[]; records: RecordRow[]; telemetry: Telemetry[]; captured_at: string };
-export type Filters = { version?: string; from?: string; to?: string; tester?: string; status?: string };
+export type Filters = { version?: string; from?: string; to?: string; tester?: string; status?: string; mode?:string };
 const ATTACK_SPELLS=['Full','Feint','Partial','Gather','Hex','Delayed'];
 function schoolOf(spell:string) {return spell==='Full'||spell==='Feint'?'Fire':spell==='Partial'||spell==='Gather'?'Ice':'Illusion';}
 const ms = (s: string) => new Date(s).getTime();
@@ -16,6 +16,7 @@ export function matchStatus(m: Match, now: number) {
 export function filterData(data: Dataset, filters: Filters): Dataset {
   const now = ms(data.captured_at);
   const matches = data.matches.filter(m =>
+    ((filters.mode||"human_human")==="all" || (m.match_mode||"human_human")===(filters.mode||"human_human")) &&
     (filters.version === "all" || m.ruleset_version === (filters.version || "power-v2")) &&
     (!filters.from || ms(m.created_at) >= ms(filters.from)) &&
     (!filters.to || ms(m.created_at) < ms(filters.to) + 86400000) &&
@@ -67,6 +68,9 @@ export function metrics(data: Dataset) {
     return {tester,games:games.length,early:halves[0],later:halves[1]};
   });
   return {
+    humanVsAi:{games:data.matches.filter(m=>m.match_mode==='human_ai').length,wins:terminal.filter(m=>m.match_mode==='human_ai'&&m.winner_seat==='A').length,
+      losses:terminal.filter(m=>m.match_mode==='human_ai'&&m.winner_seat==='B').length,draws:terminal.filter(m=>m.match_mode==='human_ai'&&m.winner_seat==='draw').length,
+      policies:data.matches.filter(m=>m.match_mode==='human_ai').map(m=>({policy:m.bot_policy,version:m.bot_version,seed:m.bot_seed}))},
     matches: data.matches.length, started:data.matches.filter(m=>m.started_at || m.status==='active' || m.status==='finished').length, completed: terminal.length, decisive: decisive.length,
     draws: terminal.filter(m=>m.winner_seat==='draw').length,
     stale:data.matches.filter(m=>matchStatus(m,ms(data.captured_at))==='stale').length,

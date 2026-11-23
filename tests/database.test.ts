@@ -1,3 +1,5 @@
+import {completedSolo} from "./solo-fixture";
+import {research} from "../src/lib/solo/archive";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll,afterAll,describe,it,expect } from "vitest";
 import { readFile,readdir } from "node:fs/promises";
@@ -130,5 +132,21 @@ describe('PostgreSQL game flow',()=>{
  const results=replay(records);expect(results.length).toBeGreaterThan(0);expect(results.every(r=>r.ok)).toBe(true);
  }
  },60000);
+
+ it('stores replay-validated solo games once with policy metadata, isolated from human games',async()=>{
+ const archive=completedSolo(77),game=research(archive);
+ const data={winner:game.state.winner,created_at:archive.createdAt,finished_at:game.finishedAt,tester_id:archive.testerId,bot_version:archive.botVersion,
+ bot_policy:archive.policy,seed:archive.seed,exchanges:game.state.exchange,attacker:game.state.attacker,last_result:game.state.last,players:game.players,records:game.records};
+ const args=[archive.id,'private-upload-token-aaaaaaaaaaaaaaaa',JSON.stringify(data)];
+ const saved=await scalar<{status:string}>('select wd_save_solo($1,$2,$3) result',args);expect(saved.status).toBe('saved');
+ expect((await scalar<{status:string}>('select wd_save_solo($1,$2,$3) result',args)).status).toBe('already_saved');
+ expect(await scalar<number>('select count(*)::int result from wd_records where match_id=$1',[archive.id])).toBe(game.records.length);
+ const rows=(await db.query<RecordRow>('select * from wd_records where match_id=$1 order by id',[archive.id])).rows;expect(replay(rows).every(r=>r.ok)).toBe(true);
+ const snapshot=await scalar<{matches:{id:string;match_mode:string;bot_version:string}[]}>('select wd_research_snapshot() result');
+ expect(snapshot.matches.find(m=>m.id===archive.id)).toMatchObject({match_mode:'human_ai',bot_version:'power-ai-1'});
+ expect(await scalar<boolean>(`select has_function_privilege('anon','wd_save_solo(uuid,text,jsonb)','execute') result`)).toBe(false);
+ await expect(scalar('select wd_save_solo($1,$2,$3) result',[archive.id,'different-private-token-aaaaaaaaaa',JSON.stringify(data)])).rejects.toThrow('solo_id_conflict');
+ await expect(scalar('select wd_save_solo($1,$2,$3) result',[archive.id,args[1],JSON.stringify({...data,seed:999})])).rejects.toThrow('solo_id_conflict');
+ });
 
 });
