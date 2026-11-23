@@ -41,3 +41,13 @@ export function clearSession() {
 export function newReconnectToken(): string {
   return crypto.randomUUID() + crypto.randomUUID().replace(/-/g, "");
 }
+
+export function testerId(): string {
+  const key = "wd_tester_id";
+  let id = window.localStorage.getItem(key);
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
+    id = crypto.randomUUID();
+    window.localStorage.setItem(key, id);
+  }
+  return id;
+}

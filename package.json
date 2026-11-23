@@ -8,15 +8,21 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "analytics": "node --env-file-if-exists=.env.local --import tsx analytics/server.ts",
+    "test:db": "vitest run tests/database.test.ts",
+    "typecheck": "tsc --noEmit",
+    "analytics:demo": "node --env-file-if-exists=.env.local --import tsx analytics/server.ts --demo"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
     "next": "16.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.17",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -24,7 +30,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.12"
   }
 }

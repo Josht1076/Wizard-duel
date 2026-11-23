@@ -10,10 +10,11 @@ import {
 } from "@/lib/rules";
 import {
   fetchMatchPublic,
+  chooseRefresh,
+  track,
   requestResolve,
   submitBid,
   submitCommit,
-  subscribeMatch,
 } from "@/lib/match/api";
 import type { MatchPublicSnapshot, PublicPlayer } from "@/lib/match/types";
 import type { PlayerSession } from "@/lib/session";
@@ -55,15 +56,32 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
 
   useEffect(() => {
     void refresh();
-    const unsub = subscribeMatch(session.matchId, () => {
-      void refresh();
-    });
     const poll = window.setInterval(() => void refresh(), 4000);
     return () => {
-      unsub();
       window.clearInterval(poll);
     };
   }, [refresh, session.matchId]);
+
+  useEffect(() => {
+    let lastInput = performance.now();
+    let lastTick = performance.now();
+    const input = () => { lastInput = performance.now(); };
+    const heartbeat = () => {
+      const now = performance.now();
+      const visible = document.visibilityState === "visible";
+      const active_ms = visible && now - lastInput < 60000 ? Math.min(15000, Math.max(0, now - lastTick)) : 0;
+      lastTick = now;
+      track(session.matchId, session.token, "activity", { visible, active_ms: Math.round(active_ms) });
+    };
+    window.addEventListener("pointerdown", input);
+    window.addEventListener("keydown", input);
+    document.addEventListener("visibilitychange", heartbeat);
+    const timer = window.setInterval(heartbeat, 15000);
+    return () => {
+      clearInterval(timer); window.removeEventListener("pointerdown", input);
+      window.removeEventListener("keydown", input); document.removeEventListener("visibilitychange", heartbeat);
+    };
+  }, [session.matchId, session.token]);
 
   const phase = snap?.state.phase;
   const me = playerBySeat(snap?.players ?? [], session.seat);
@@ -104,6 +122,7 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
         // Concurrent resolve from the other phone is fine
         if (!/already_applied|wrong_phase|409/.test(msg)) {
           setError(msg);
+          track(session.matchId, session.token, "action_error", { action: "resolve", code: "failed" });
         }
       })
       .finally(() => {
@@ -114,7 +133,7 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
   }, [phase, session.matchId, session.token, refresh]);
 
   const iHaveAdvantage =
-    snap?.state.advantage_seat === session.seat && !advantageSpend;
+    snap?.state.advantage_at_start === session.seat && !snap?.state.refresh_spend_seat && !advantageSpend;
   const canAct =
     (phase === "bid" &&
       ((session.seat === "A" && !snap?.state.pending_bid_a) ||
@@ -132,6 +151,7 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "bid_failed");
+      track(session.matchId, session.token, "action_error", { action: "bid", code: "failed" });
     } finally {
       setBusy(false);
     }
@@ -149,16 +169,13 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
         spell,
         power,
         advantageSpend,
-        declaredSchool:
-          myRole === "attack"
-            ? (selected as (typeof ATTACK_CARDS)[number]).school
-            : null,
       });
       setAdvantageSpend(null);
       setSpellIndex(0);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "commit_failed");
+      track(session.matchId, session.token, "action_error", { action: "commit", code: "failed" });
     } finally {
       setBusy(false);
     }
@@ -200,6 +217,7 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
       if (w === session.seat) return "You win";
       return "You lose";
     }
+    if (phase === "refresh") return "Prepare your power cards";
     if (phase === "resolve") return "Resolving exchange…";
     if (myRole === "attack") return "Attacking";
     if (myRole === "defend") return "Defend";
@@ -263,7 +281,7 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
               type="button"
               className="utility"
               aria-expanded={inspectOpen}
-              onClick={() => setInspectOpen((v) => !v)}
+              onClick={() => { if (!inspectOpen) track(session.matchId, session.token, "inspect_open"); setInspectOpen((v) => !v); }}
             >
               Inspect
             </button>
@@ -291,6 +309,21 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
           </div>
         )}
 
+        {phase === "refresh" && (
+          <div className="public">
+            {snap?.state.advantage_at_start === session.seat ? <>
+              <p>Spend Advantage to recover all discarded power, or keep it for this exchange.</p>
+              <div className="advantage-actions">
+                {[true, false].map(spend => <button key={String(spend)} disabled={busy} onClick={async () => {
+                  setBusy(true);
+                  try { await chooseRefresh(session.matchId, session.token, spend); await refresh(); }
+                  catch { setError("refresh_choice_failed"); track(session.matchId, session.token, "action_error", {action:"refresh",code:"failed"}); }
+                  finally { setBusy(false); }
+                }}>{spend ? "Spend Advantage: recover power" : "Keep Advantage"}</button>)}
+              </div>
+            </> : <p>Waiting for the Advantage holder’s refresh choice.</p>}
+          </div>
+        )}
         {phase === "lobby" && (
           <div className="public">
             <p role="status">
@@ -363,14 +396,7 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
                   >
                     {myRole === "defend" ? "+2 prevention" : "+2 damage"}
                   </button>
-                  <button
-                    type="button"
-                    className="utility"
-                    disabled={busy || advantageSpend !== null}
-                    onClick={() => setAdvantageSpend("refresh")}
-                  >
-                    Refresh power deck
-                  </button>
+
                 </div>
               </div>
             )}
@@ -473,7 +499,7 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
           phase !== "lobby" &&
           phase !== "bid" &&
           phase !== "finished" &&
-          phase !== "resolve" && (
+          phase !== "resolve" && phase !== "refresh" && (
             <div className="public">
               <p role="status">Your spell and power stay hidden until reveal.</p>
               {snap?.state.declared_school && phase === "defense_commit" && (
@@ -490,7 +516,7 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
           </div>
         )}
 
-        {last && (phase === "attack_commit" || phase === "finished") && (
+        {last && (phase === "refresh" || phase === "attack_commit" || phase === "finished") && (
           <div className="result">
             <div className="public" aria-live="polite">
               <p>

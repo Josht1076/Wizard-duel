@@ -1,3 +1,4 @@
+import { testerId } from "@/lib/session";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { AdvantageSpend } from "@/lib/rules";
 import type { MatchPublicSnapshot } from "./types";
@@ -17,61 +18,34 @@ function rpcError(error: { message?: string } | null, fallback: string): never {
   throw new Error(msg.replace(/^.*?:\s*/, ""));
 }
 
-export async function createMatch(displayName: string, token: string) {
-  const sb = clientOrThrow();
-  const { data, error } = await sb.rpc("wd_create_match", {
-    p_display_name: displayName,
-    p_token: token,
-  });
-  if (error) rpcError(error, "create_failed");
-  return data as {
-    match_id: string;
-    room_code: string;
-    seat: "A";
-    status: string;
-    phase: string;
-  };
+type Joined = { match_id: string; room_code: string; seat: "A" | "B"; display_name?: string; status: string; phase: string };
+async function command(token: string, action: string, args: Record<string, unknown>) {
+  const requestId = crypto.randomUUID();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data, error } = await clientOrThrow().rpc("wd_command", {
+        p_request_id: requestId, p_token: token, p_command: action, p_args: args,
+      });
+      if (error) {
+        if (!attempt && /fetch|network|Failed to fetch/i.test(error.message)) continue;
+        rpcError(error, `${action}_failed`);
+      }
+      return data;
+    } catch (error) {
+      if (attempt || !(error instanceof TypeError)) throw error;
+    }
+  }
+  throw new Error("network_failed");
 }
-
-export async function joinMatch(
-  roomCode: string,
-  displayName: string,
-  token: string,
-) {
-  const sb = clientOrThrow();
-  const { data, error } = await sb.rpc("wd_join_match", {
-    p_room_code: roomCode,
-    p_display_name: displayName,
-    p_token: token,
-  });
-  if (error) rpcError(error, "join_failed");
-  return data as {
-    match_id: string;
-    room_code: string;
-    seat: "B";
-    status: string;
-    phase: string;
-  };
+export async function createMatch(displayName: string, token: string): Promise<Joined> {
+  return command(token, "create", { display_name: displayName, tester_id: testerId() });
 }
-
-export async function reconnectMatch(roomCode: string, token: string) {
-  const sb = clientOrThrow();
-  const { data, error } = await sb.rpc("wd_reconnect", {
-    p_room_code: roomCode,
-    p_token: token,
-  });
-  if (error) rpcError(error, "reconnect_failed");
-  return data as {
-    match_id: string;
-    room_code: string;
-    seat: "A" | "B";
-    display_name: string;
-    status: string;
-    phase: string;
-    winner_seat: string | null;
-  };
+export async function joinMatch(roomCode: string, displayName: string, token: string): Promise<Joined> {
+  return command(token, "join", { room_code: roomCode, display_name: displayName, tester_id: testerId() });
 }
-
+export async function reconnectMatch(roomCode: string, token: string): Promise<Joined> {
+  return command(token, "reconnect", { room_code: roomCode });
+}
 export async function fetchMatchPublic(
   roomCode: string,
 ): Promise<MatchPublicSnapshot> {
@@ -83,42 +57,26 @@ export async function fetchMatchPublic(
   return data as MatchPublicSnapshot;
 }
 
-export async function submitBid(
-  matchId: string,
-  token: string,
-  power: number,
-) {
-  const sb = clientOrThrow();
-  const { data, error } = await sb.rpc("wd_submit_bid", {
-    p_match_id: matchId,
-    p_token: token,
-    p_power: power,
-  });
-  if (error) rpcError(error, "bid_failed");
-  return data as Record<string, unknown>;
+export async function submitBid(matchId: string, token: string, power: number) {
+  return command(token, "bid", { match_id: matchId, power });
 }
-
 export async function submitCommit(args: {
-  matchId: string;
-  token: string;
-  spell: string;
-  power: number;
+  matchId: string; token: string; spell: string; power: number;
   advantageSpend?: AdvantageSpend;
-  declaredSchool?: string | null;
 }) {
-  const sb = clientOrThrow();
-  const { data, error } = await sb.rpc("wd_submit_commit", {
-    p_match_id: args.matchId,
-    p_token: args.token,
-    p_spell: args.spell,
-    p_power: args.power,
-    p_advantage_spend: args.advantageSpend ?? null,
-    p_declared_school: args.declaredSchool ?? null,
-  });
-  if (error) rpcError(error, "commit_failed");
-  return data as Record<string, unknown>;
+  return command(args.token, "commit", { match_id: args.matchId, spell: args.spell, power: args.power,
+    advantage_spend: args.advantageSpend ?? null });
 }
-
+export async function chooseRefresh(matchId: string, token: string, spend: boolean) {
+  return command(token, "refresh", { match_id: matchId, spend });
+}
+export function track(matchId: string, token: string, kind: string, payload: Record<string, unknown> = {}) {
+  const requestId = crypto.randomUUID();
+  void (async () => {
+    try { await clientOrThrow().rpc("wd_track", { p_request_id: requestId, p_match_id: matchId,
+      p_token: token, p_kind: kind, p_payload: payload }); } catch { /* telemetry never blocks play */ }
+  })();
+}
 export async function requestResolve(matchId: string, token: string) {
   const res = await fetch("/api/resolve", {
     method: "POST",
@@ -133,38 +91,4 @@ export async function requestResolve(matchId: string, token: string) {
     throw new Error(body.error ?? `resolve_failed_${res.status}`);
   }
   return body;
-}
-
-export function subscribeMatch(
-  matchId: string,
-  onChange: () => void,
-): () => void {
-  const sb = clientOrThrow();
-  const channel = sb
-    .channel(`match:${matchId}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "match_state", filter: `match_id=eq.${matchId}` },
-      () => onChange(),
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "match_players", filter: `match_id=eq.${matchId}` },
-      () => onChange(),
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "matches", filter: `id=eq.${matchId}` },
-      () => onChange(),
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "commits", filter: `match_id=eq.${matchId}` },
-      () => onChange(),
-    )
-    .subscribe();
-
-  return () => {
-    void sb.removeChannel(channel);
-  };
 }

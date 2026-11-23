@@ -28,6 +28,9 @@ export type PublicPlayer = {
 export type PublicMatchState = {
   phase: MatchPhase;
   advantage_seat: Seat | null;
+  advantage_at_start: Seat | null;
+  refresh_spend_seat: Seat | null;
+  phase_started_at: string;
   attacker_seat: Seat | null;
   exchange_number: number;
   declared_school: string | null;
@@ -42,6 +45,8 @@ export type PublicMatch = {
   room_code: string;
   status: MatchStatus;
   winner_seat: Seat | "draw" | null;
+  ruleset_version: string;
+  engine_version: string;
 };
 
 export type RevealedCommit = {
@@ -67,6 +72,7 @@ export type ResolveBundle = {
   attacker_seat: Seat;
   defender_seat: Seat;
   advantage_at_start: Seat | null;
+  refresh_spend_seat?: Seat | null;
   attack: {
     spell: string;
     power: number;

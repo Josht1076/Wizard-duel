@@ -67,6 +67,11 @@ export function resolveExchange(input: ExchangeInput): ExchangeResult {
     advantage = spendSeat === attackerSeat ? defenderSeat : attackerSeat;
   }
 
+  if (spend && (!spendSeat || advantageAtStart !== spendSeat)) throw new Error("invalid_advantage_owner");
+  if (!availablePower(attackerDiscarded).includes(commit.attackPower) || !availablePower(defenderDiscarded).includes(commit.defensePower)) {
+    throw new Error("power_unavailable");
+  }
+
   const attackBoost =
     spend === "boost" && spendSeat === attackerSeat ? 2 : 0;
   const defendBoost =
@@ -130,12 +135,14 @@ export function resolveExchange(input: ExchangeInput): ExchangeResult {
   // Attack: discard played power (Gather recovers after)
   attackerDiscarded = withoutPower(attackerDiscarded, commit.attackPower);
 
+  let gatherRecovered: number | null = null;
   if (isGather) {
     const want = (commit.attackPower + 1) as number;
     const recovered =
       want <= 5 && attackerDiscarded.includes(want as PowerValue)
         ? (want as PowerValue)
         : commit.attackPower;
+    gatherRecovered = recovered;
     // Gather discards played, then recovers Power+1 or played
     // Played is already in discard; recover preferred target
     if (attackerDiscarded.includes(recovered)) {
@@ -180,18 +187,7 @@ export function resolveExchange(input: ExchangeInput): ExchangeResult {
   if (isDelayed) {
     followups.push(`Attacker stores ${attackerStoredDamage} damage.`);
   }
-  if (isGather) {
-    const want = commit.attackPower + 1;
-    const recovered =
-      want <= 5 &&
-      withoutPower(
-        [...attacker.discardedPower] as PowerValue[],
-        commit.attackPower,
-      ).includes(want as PowerValue)
-        ? want
-        : commit.attackPower;
-    followups.push(`Attacker recovers Power ${recovered}.`);
-  }
+  if (isGather) followups.push(`Attacker recovers Power ${gatherRecovered}.`);
   if (commit.attackSpell === "Partial") {
     followups.push("Attacker prepares +1 prevention.");
   }
