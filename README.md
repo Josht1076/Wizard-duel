@@ -7,14 +7,14 @@ Next.js on Vercel, Supabase for authoritative multiplayer state, and a separate 
 Requires Node 22.14+.
 
 1. Run `npm ci`.
-2. Copy `.env.local.example` to `.env.local` and fill in the Supabase URL, publishable key, and **server-only service-role key**.
+2. Copy `.env.local.example` to `.env.local` and fill in the Supabase URL, publishable key (`sb_publishable_…`), and **server-only secret key** (`sb_secret_…` as `SUPABASE_SECRET_KEY`; legacy `service_role` JWT via `SUPABASE_SERVICE_ROLE_KEY` still works).
 3. In a separate test Supabase project, apply migrations `001` through `004` in order, or run `supabase/APPLY_IN_SQL_EDITOR.sql` **once on a fresh database**. For an existing database already at migration 003, apply only `004_power_v2_analytics.sql`. The concatenated fresh-install script is not an upgrade/reapply script.
 4. Run `npm run dev`; open the game on two separate browsers/devices.
 5. Run `npm run analytics`; open **http://127.0.0.1:4310** on this computer.
 
 For a dashboard preview with synthetic records and no credentials: `npm run analytics:demo`. Demo records exist only in memory; they are not written to Supabase.
 
-Never place the service-role key in a `NEXT_PUBLIC_*` variable. It is used by the server resolution handler and the standalone analytics process; it is never returned to either browser. Keep `.env.local` untracked. The analytics process binds to 127.0.0.1, rejects foreign Host/Origin headers, and has no public Next.js route. Do not proxy or deploy it.
+Never place the secret / service-role key in a `NEXT_PUBLIC_*` variable. Prefer Supabase’s new secret key over the legacy `service_role` JWT ([migration guide](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys)). It is used by the server resolution handler and the standalone analytics process; it is never returned to either browser. Keep `.env.local` untracked. The analytics process binds to 127.0.0.1, rejects foreign Host/Origin headers, and has no public Next.js route. Do not proxy or deploy it.
 
 ## Multiplayer behavior
 

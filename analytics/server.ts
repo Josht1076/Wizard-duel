@@ -5,8 +5,9 @@ import { createClient } from "@supabase/supabase-js";
 import { exportData,filterData,metrics,replay,csv, type Dataset } from "./model";
 const port=Number(process.env.WD_ANALYTICS_PORT||4310);
 const demo=process.argv.includes('--demo');
-if (!demo && (!process.env.SUPABASE_SERVICE_ROLE_KEY||!process.env.NEXT_PUBLIC_SUPABASE_URL)) throw new Error('Set server-only Supabase credentials in .env.local, or use npm run analytics -- --demo');
-const sb=demo?null:createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false,autoRefreshToken:false}});
+const serverKey=(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY||'').trim();
+if (!demo && (!serverKey||!process.env.NEXT_PUBLIC_SUPABASE_URL)) throw new Error('Set SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) in .env.local, or use npm run analytics -- --demo');
+const sb=demo?null:createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,serverKey,{auth:{persistSession:false,autoRefreshToken:false}});
 async function dataset():Promise<Dataset> {
   if(demo) return fixture();
   const {data,error}=await sb!.rpc('wd_research_snapshot');
