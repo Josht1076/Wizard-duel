@@ -137,10 +137,13 @@ export function SoloDuelBoard(){
       {humanTurn&&state.phase!=="refresh"&&<>
         {state.phase!=="bid"&&<>
           {canBoost(state,"A")&&<label className="solo-boost"><input type="checkbox" checked={boost} onChange={e=>setBoost(e.target.checked)}/>Spend Advantage: {state.phase==="attack"?"+2 damage":"+2 prevention"}</label>}
-          <div className="selection"><section className={`spell ${selected.school.toLowerCase()}`}><div className="sigil" aria-hidden="true">{SCHOOL_ICONS[selected.school]}</div><div><p className="eyebrow kind">{selected.school}</p><h3>{selected.name}</h3><p className="rule">{selected.rule}</p></div></section></div>
+          <div className="selection" aria-label="Spell and power layout">
+            <section className={`spell ${selected.school.toLowerCase()}`}><div className="sigil" aria-hidden="true">{SCHOOL_ICONS[selected.school]}</div><div><p className="eyebrow kind">{selected.school}</p><h3>{selected.name}</h3><p className="rule">{selected.rule}</p></div></section>
+            <div className="power"><span className="eyebrow">Power</span><div className="numbers" role="group" aria-label="Power cards">{([1,2,3,4,5] as PowerValue[]).map(p=><button key={p} disabled={!available.includes(p)} aria-pressed={selectedPower===p} onClick={()=>setPower(p)}>{p}</button>)}</div></div>
+          </div>
           <div className="hand" data-defense={state.phase==="defend"} role="group" aria-label="Spells">{cards.map(c=><button key={c.name} className={`choice ${c.school.toLowerCase()}`} aria-pressed={selected.name===c.name} onClick={()=>setSpell(c.name)}><strong>{c.name}</strong><span>{c.face}</span></button>)}</div>
         </>}
-        <div className="power"><span className="eyebrow">Power</span><div className="numbers" role="group" aria-label="Power cards">{([1,2,3,4,5] as PowerValue[]).map(p=><button key={p} disabled={!available.includes(p)} aria-pressed={selectedPower===p} onClick={()=>setPower(p)}>{p}</button>)}</div></div>
+        {state.phase==="bid"&&<div className="power"><span className="eyebrow">Power</span><div className="numbers" role="group" aria-label="Power cards">{([1,2,3,4,5] as PowerValue[]).map(p=><button key={p} disabled={!available.includes(p)} aria-pressed={selectedPower===p} onClick={()=>setPower(p)}>{p}</button>)}</div></div>}
         <div className="footer"><button className="main-action" onClick={()=>commit(state.phase==="bid"?{kind:"bid",seat:"A",power:selectedPower}:state.phase==="attack"?{kind:"attack",seat:"A",spell:selected.name as AttackSpell,power:selectedPower,boost}:{kind:"defend",seat:"A",spell:selected.name as DefenseSpell,power:selectedPower,boost})}>Commit {state.phase==="bid"?"bid":state.phase==="attack"?"attack":"defense"}</button></div>
       </>}
       {state.phase==="bid"&&state.bids.A!==null&&<p role="status">Your bid is locked. Waiting for the AI bid.</p>}

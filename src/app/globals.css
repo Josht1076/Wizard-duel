@@ -15,6 +15,11 @@
 body {
   margin: 0;
   min-height: 100dvh;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
   background:
     radial-gradient(circle at 12% 8%, color-mix(in srgb, #855127 18%, transparent), transparent 42%),
     radial-gradient(circle at 88% 0%, color-mix(in srgb, #6d4694 14%, transparent), transparent 36%),
@@ -441,6 +446,25 @@ a {
 @media (max-width: 560px) {
   .duel-shell .hand[data-defense="true"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Phone: power below spell/selection as a horizontal 1–5 row (mockup "Below spell"). */
+@media (max-width: 640px) {
+  .duel-shell .selection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .duel-shell .power {
+    justify-items: stretch;
+  }
+
+  .duel-shell .numbers {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .duel-shell .numbers button {
+    width: 100%;
   }
 }
 
