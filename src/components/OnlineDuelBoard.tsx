@@ -313,6 +313,25 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
           <div className="public">
             {snap?.state.advantage_at_start === session.seat ? <>
               <p>Spend Advantage to recover all discarded power, or keep it for this exchange.</p>
+              <div className="power" style={{ marginTop: 12 }}>
+                <span className="eyebrow">Your available power</span>
+                <div className="numbers" role="group" aria-label="Available power cards">
+                  {([1, 2, 3, 4, 5] as PowerValue[]).map((value) => {
+                    const have = availablePower((me?.discarded_power ?? []) as PowerValue[]).includes(value);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        disabled={!have}
+                        aria-pressed={have}
+                        tabIndex={-1}
+                      >
+                        {value}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="advantage-actions">
                 {[true, false].map(spend => <button key={String(spend)} disabled={busy} onClick={async () => {
                   setBusy(true);
@@ -516,36 +535,44 @@ export function OnlineDuelBoard({ session }: { session: PlayerSession }) {
           </div>
         )}
 
-        {last && (phase === "refresh" || phase === "attack_commit" || phase === "finished") && (
-          <div className="result">
-            <div className="public" aria-live="polite">
-              <p>
-                {(last.attack_spell as string) ?? "Attack"} · Power{" "}
-                {String(last.attack_power)} · {String(last.incoming_damage)}{" "}
-                damage
-              </p>
-              <p>
-                {(last.defense_spell as string) ?? "Defense"} · Power{" "}
-                {String(last.defense_power)} · {String(last.prevention)}{" "}
-                prevention
-              </p>
-              <p>
-                Defender loses {String(last.damage_to_defender)} HP.
-                {last.retaliation_to_attacker
-                  ? ` Attacker loses ${String(last.retaliation_to_attacker)} HP to Reversal.`
-                  : ""}{" "}
-                Advantage ·{" "}
-                {last.advantage_after
-                  ? `Seat ${String(last.advantage_after)}`
-                  : "None"}
-                .
-                {Array.isArray(last.followups)
-                  ? ` ${(last.followups as string[]).join(" ")}`
-                  : ""}
-              </p>
+        {last && (phase === "refresh" || phase === "attack_commit" || phase === "finished") && (() => {
+          const nameFor = (seat: Seat | null | undefined) => {
+            if (!seat) return "Unknown";
+            if (seat === session.seat) return "You";
+            const named = playerBySeat(snap?.players ?? [], seat)?.display_name?.trim();
+            if (named) return named;
+            return seat === "A" ? "Player 1" : "Player 2";
+          };
+          const atkSeat = (last.attacker_seat as Seat | undefined) ?? attackerSeat;
+          const defSeat = (last.defender_seat as Seat | undefined) ?? defenderSeat;
+          const atk = nameFor(atkSeat);
+          const def = nameFor(defSeat);
+          const adv = last.advantage_after ? nameFor(last.advantage_after as Seat) : "None";
+          return (
+            <div className="result">
+              <div className="public" aria-live="polite">
+                <p>
+                  {atk} (attack): {(last.attack_spell as string) ?? "Attack"} · Power{" "}
+                  {String(last.attack_power)} · {String(last.incoming_damage)} damage
+                </p>
+                <p>
+                  {def} (defense): {(last.defense_spell as string) ?? "Defense"} · Power{" "}
+                  {String(last.defense_power)} · {String(last.prevention)} prevention
+                </p>
+                <p>
+                  {def} loses {String(last.damage_to_defender)} HP.
+                  {last.retaliation_to_attacker
+                    ? ` ${atk} loses ${String(last.retaliation_to_attacker)} HP to Reversal.`
+                    : ""}{" "}
+                  Advantage · {adv}.
+                  {Array.isArray(last.followups)
+                    ? ` ${(last.followups as string[]).join(" ")}`
+                    : ""}
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </section>
 
       <p

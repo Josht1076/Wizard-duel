@@ -124,7 +124,16 @@ export function SoloDuelBoard(){
         <p>Advantage: {state.advantage==="A"?"You":state.advantage==="B"?"AI":"none"}{state.spend?` · ${state.spend.seat==="A"?"You":"AI"} spent it for ${state.spend.action}`:""}</p>
       </div>}
       {state.phase==="bid"&&<p className="small">Both players secretly bid an available power. Higher power attacks first; both bids are discarded. Ties re-bid.</p>}
-      {humanTurn&&state.phase==="refresh"&&<div className="advantage-actions"><button className="utility" onClick={()=>commit({kind:"refresh",seat:"A",spend:true})}>Spend Advantage: recover power</button><button className="utility" onClick={()=>commit({kind:"refresh",seat:"A",spend:false})}>Keep Advantage</button></div>}
+      {humanTurn&&state.phase==="refresh"&&<>
+        <p className="small">Spend Advantage to recover discarded power, or keep it for this exchange.</p>
+        <div className="power">
+          <span className="eyebrow">Your available power</span>
+          <div className="numbers" role="group" aria-label="Available power cards">
+            {([1,2,3,4,5] as PowerValue[]).map(p=><button key={p} type="button" disabled={!available.includes(p)} aria-pressed={available.includes(p)} tabIndex={-1}>{p}</button>)}
+          </div>
+        </div>
+        <div className="advantage-actions"><button className="utility" onClick={()=>commit({kind:"refresh",seat:"A",spend:true})}>Spend Advantage: recover power</button><button className="utility" onClick={()=>commit({kind:"refresh",seat:"A",spend:false})}>Keep Advantage</button></div>
+      </>}
       {humanTurn&&state.phase!=="refresh"&&<>
         {state.phase!=="bid"&&<>
           {canBoost(state,"A")&&<label className="solo-boost"><input type="checkbox" checked={boost} onChange={e=>setBoost(e.target.checked)}/>Spend Advantage: {state.phase==="attack"?"+2 damage":"+2 prevention"}</label>}
@@ -135,7 +144,16 @@ export function SoloDuelBoard(){
         <div className="footer"><button className="main-action" onClick={()=>commit(state.phase==="bid"?{kind:"bid",seat:"A",power:selectedPower}:state.phase==="attack"?{kind:"attack",seat:"A",spell:selected.name as AttackSpell,power:selectedPower,boost}:{kind:"defend",seat:"A",spell:selected.name as DefenseSpell,power:selectedPower,boost})}>Commit {state.phase==="bid"?"bid":state.phase==="attack"?"attack":"defense"}</button></div>
       </>}
       {state.phase==="bid"&&state.bids.A!==null&&<p role="status">Your bid is locked. Waiting for the AI bid.</p>}
-      {last&&(state.phase==="reveal"||state.phase==="finished")&&<div className="result public" aria-live="polite"><p>{last.attacker_seat==="A"?"You":"AI"}: {last.attack_spell} @ {last.attack_power} · {last.incoming_damage} incoming damage</p><p>{last.defender_seat==="A"?"You":"AI"}: {last.defense_spell} @ {last.defense_power} · {last.prevention} prevention</p><p>Defender loses {last.damage_to_defender} HP. {last.followups.join(" ")}</p></div>}
+      {last&&(state.phase==="reveal"||state.phase==="finished")&&(()=>{
+        const atk=last.attacker_seat==="A"?"You":"AI";
+        const def=last.defender_seat==="A"?"You":"AI";
+        const adv=last.advantage_after==="A"?"You":last.advantage_after==="B"?"AI":"none";
+        return <div className="result public" aria-live="polite">
+          <p>{atk} (attack): {last.attack_spell} @ {last.attack_power} · {last.incoming_damage} incoming damage</p>
+          <p>{def} (defense): {last.defense_spell} @ {last.defense_power} · {last.prevention} prevention</p>
+          <p>{def} loses {last.damage_to_defender} HP.{last.retaliation_to_attacker?` ${atk} loses ${last.retaliation_to_attacker} HP to Reversal.`:""} Advantage · {adv}. {last.followups.join(" ")}</p>
+        </div>;
+      })()}
       {state.phase==="reveal"&&<button className="main-action" onClick={()=>commit({kind:"continue"})}>Next exchange</button>}
       {state.phase==="finished"&&<div className="public"><p role="status">{sync||(game.uploaded?"Saved to Supabase.":"Waiting to upload completed game…")}</p>{!game.uploaded&&<button className="utility" onClick={()=>void flush()}>Retry upload</button>}<button className="utility" onClick={download}>Download completed game</button></div>}
       <p className="small">{BOT_VERSION} · Seed {game.archive.seed} · Power-card rules</p>
